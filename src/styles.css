@@ -1,0 +1,198 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-border-strong: var(--border-strong);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-ring: var(--primary);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
+  --color-secondary: var(--elevated);
+  --color-secondary-foreground: var(--fg);
+  --color-accent: var(--accent-soft);
+  --color-accent-foreground: var(--primary);
+  --color-popover: var(--elevated);
+  --color-popover-foreground: var(--fg);
+  --color-muted-foreground: var(--muted);
+  --color-destructive: var(--down);
+  --color-input: var(--border);
+  --color-sidebar: var(--surface);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius: 8px;
+
+  --shadow-border: var(--elev-shadow);
+}
+
+:root {
+  --bg: #090b0e;
+  --surface: #101318;
+  --elevated: #161a20;
+  --fg: #e6e8eb;
+  --muted: #8a9099;
+  --subtle: #6b717a;
+  --primary: #4db6a8;
+  --primary-fg: #07201c;
+  --border: color-mix(in oklab, var(--fg) 12%, transparent);
+  --border-strong: color-mix(in oklab, var(--fg) 22%, transparent);
+  --up: #26a69a;
+  --down: #ef5350;
+  --accent-soft: #1a2e2b;
+  --elev-shadow: 0 0 0 1px color-mix(in oklab, var(--fg) 8%, transparent);
+  --chart-grid: color-mix(in oklab, var(--fg) 6%, transparent);
+  --overlay-fill: color-mix(in oklab, var(--primary) 14%, transparent);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --motion-stagger: 40ms;
+  --motion-micro: 80ms;
+  --motion-quick: 150ms;
+  --motion-fast: 250ms;
+  --motion-medium: 350ms;
+  --motion-slow: 400ms;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: ease-in-out;
+  --motion-scale-modal: 0.96;
+  --motion-scale-menu: 0.97;
+}
+
+html.light {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --elevated: #eef0f3;
+  --fg: #14171c;
+  --muted: #5c6370;
+  --subtle: #7a8190;
+  --primary: #1f8a7c;
+  --primary-fg: #f4fffc;
+  --border: color-mix(in oklab, var(--fg) 12%, transparent);
+  --border-strong: color-mix(in oklab, var(--fg) 20%, transparent);
+  --up: #15803d;
+  --down: #dc2626;
+  --accent-soft: #d7efe9;
+  --elev-shadow: 0 0 0 1px rgba(20, 23, 28, 0.08), 0 1px 2px rgba(20, 23, 28, 0.04);
+  --chart-grid: color-mix(in oklab, var(--fg) 8%, transparent);
+  --overlay-fill: color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+@layer base {
+  html {
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  body {
+    min-height: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--fg) 18%, transparent) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.chart-stage {
+  height: min(52dvh, 30rem);
+}
+
+@media (min-width: 768px) {
+  .chart-stage {
+    height: 100%;
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.panel-scroll {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.resize-handle {
+  width: 5px;
+  background: transparent;
+  position: relative;
+}
+
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  inset: 0 1px;
+  background: var(--border);
+}
+
+.resize-handle:hover::after,
+.resize-handle[data-separator-active]::after {
+  background: var(--primary);
+}
+
+.heat-cell {
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-quick) var(--ease-out);
+}
+
+.heat-cell:hover {
+  transform: translateY(-1px);
+}
