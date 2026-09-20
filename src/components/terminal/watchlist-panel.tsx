@@ -16,6 +16,7 @@ export function WatchlistPanel() {
   const remove = useTerminalStore((s) => s.removeFromWatchlist);
   const createWatchlist = useTerminalStore((s) => s.createWatchlist);
   const deleteWatchlist = useTerminalStore((s) => s.deleteWatchlist);
+  const clearWatchlist = useTerminalStore((s) => s.clearWatchlist);
   const setSearchOpen = useTerminalStore((s) => s.setSearchOpen);
   const { quotes } = useMarketData();
 
@@ -33,6 +34,7 @@ export function WatchlistPanel() {
             size="icon-sm"
             variant="ghost"
             aria-label="New watchlist"
+            title="New watchlist"
             onClick={() => {
               const name = window.prompt("Watchlist name");
               if (name?.trim()) createWatchlist(name.trim());
@@ -40,16 +42,41 @@ export function WatchlistPanel() {
           >
             <Plus className="size-4" />
           </Button>
-          {watchlists.length > 1 ? (
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              aria-label="Delete watchlist"
-              onClick={() => active && deleteWatchlist(active.id)}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          ) : null}
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Clear symbols"
+            title="Clear all symbols in this list"
+            onClick={() => {
+              if (!active) return;
+              if (active.symbols.length === 0) return;
+              if (window.confirm(`Clear all symbols from "${active.name}"?`)) {
+                clearWatchlist(active.id);
+              }
+            }}
+          >
+            <Star className="size-4" />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Delete watchlist"
+            title="Delete this watchlist"
+            onClick={() => {
+              if (!active) return;
+              if (
+                window.confirm(
+                  watchlists.length <= 1
+                    ? `Delete "${active.name}" and start a blank list?`
+                    : `Delete watchlist "${active.name}"?`,
+                )
+              ) {
+                deleteWatchlist(active.id);
+              }
+            }}
+          >
+            <Trash2 className="size-4" />
+          </Button>
         </div>
       </div>
       <div className="flex gap-1 overflow-x-auto border-b border-border px-2 py-2">
