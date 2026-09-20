@@ -37,7 +37,7 @@ export function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-/** Inverse of escapeHtml. Decode amp entities last so a single pass undoes one encode. */
+/** Inverse of escapeHtml. Decode entities last so a single pass undoes one encode. */
 function unescapeHtml(value) {
   return String(value)
     .replaceAll("&" + "lt;", "<")
@@ -47,18 +47,12 @@ function unescapeHtml(value) {
     .replaceAll("&" + "amp;", "&");
 }
 
-/** 6-digit hex for the og.grok.me placeholder, or "" if site.color is missing/invalid. */
 function placeholderCardColor(site = {}) {
   const raw = String(site.color ?? "").trim();
   const hex = raw.startsWith("#") ? raw.slice(1) : raw;
   return /^[0-9a-fA-F]{6}$/.test(hex) ? hex : "";
 }
 
-/**
- * "wild-race.grok.me" → "Wild Race". Only published app hosts encode the
- * display name in the first label. Preview / guest hosts are image origins
- * only — slugifying them produced internal names like "Hds Abc 3000 Xy".
- */
 export function appNameFromHost(hostHeader) {
   const host = String(hostHeader ?? "")
     .split(",")[0]
@@ -66,7 +60,6 @@ export function appNameFromHost(hostHeader) {
     .split(":")[0]
     .toLowerCase();
   if (!host.endsWith(".grok.me")) {
-    // Vercel / custom domains: use Meridian branding
     return DEFAULT_APP_NAME;
   }
   const slug = host.split(".")[0] ?? "";
@@ -82,7 +75,6 @@ export function appNameFromHost(hostHeader) {
   );
 }
 
-/** True for Vercel system domains. Envoy rewrites origin Host to these; they SSO-protect `/og.jpg`. */
 function isVercelSystemHost(host) {
   return (
     host === "vercel.app" ||
@@ -92,7 +84,6 @@ function isVercelSystemHost(host) {
   );
 }
 
-/** Hostname suitable for absolute og:image URLs. Preview guests (X-Forwarded-Host) are allowed. */
 export function publicAppHost(hostHeader) {
   const host = String(hostHeader ?? "")
     .split(",")[0]
@@ -100,17 +91,11 @@ export function publicAppHost(hostHeader) {
     .split(":")[0]
     .toLowerCase();
   if (!host || !/^[a-z0-9.-]+$/.test(host) || !host.includes(".")) return "";
-  if (/^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(host)) return "";
+  if (new RegExp("^[0-9]{1,3}(?:[.][0-9]{1,3}){3}$").test(host)) return "";
   if (isVercelSystemHost(host)) return "";
   return host;
 }
 
-/**
- * Published apps always use `VITE_PUBLIC_HOSTNAME` (the grok.me host the
- * deployer injects). Live preview has no such env, so fall back to the
- * request host / X-Forwarded-Host. Never prefer request Host on a published
- * app — Envoy rewrites it to `*.vercel.app`.
- */
 export function resolvePublicHost(hostHeader) {
   return (
     publicAppHost(process.env?.VITE_PUBLIC_HOSTNAME) || publicAppHost(hostHeader)
@@ -125,7 +110,6 @@ export function isInstallQuery(url) {
   return (install === "1" || install === "true") && platform === "ios";
 }
 
-/** Paths that can carry an app document (vs assets / API / internals). */
 export function isDocumentPath(pathname) {
   const path = String(pathname ?? "");
   return (
@@ -133,7 +117,7 @@ export function isDocumentPath(pathname) {
     !path.startsWith("/api/") &&
     !path.startsWith("/@") &&
     !path.startsWith("/node_modules") &&
-    !/\\.[a-z0-9]+$/i.test(path)
+    !new RegExp("[.][a-z0-9]+$", "i").test(path)
   );
 }
 
@@ -142,14 +126,13 @@ export function acceptsHtml(accept) {
   return value === "" || value.includes("text/html") || value.includes("*/*");
 }
 
-/** The same URL without the install-tutorial params (used as the app link). */
 export function stripInstallParams(url) {
   const [path = "/", query = ""] = String(url ?? "/").split("?", 2);
   const params = new URLSearchParams(query);
   params.delete("install");
   params.delete("platform");
   const rest = params.toString();
-  return rest ? `${path}?${rest}` : path;
+  return rest ? path + "?" + rest : path;
 }
 
 export function renderInstallPageHtml(template, { host, url } = {}) {
@@ -171,36 +154,11 @@ export function renderWebManifest(hostHeader) {
       background_color: "#000000",
       theme_color: "#000000",
       icons: [
-        {
-          src: "/favicon.svg",
-          sizes: "any",
-          type: "image/svg+xml",
-          purpose: "any",
-        },
-        {
-          src: "/__grok/icon-180.png",
-          sizes: "180x180",
-          type: "image/png",
-          purpose: "any",
-        },
-        {
-          src: "/icon-192.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "any",
-        },
-        {
-          src: "/icon-512.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "any",
-        },
-        {
-          src: "/icon-512-maskable.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "maskable",
-        },
+        { src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+        { src: "/__grok/icon-180.png", sizes: "180x180", type: "image/png", purpose: "any" },
+        { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       ],
     },
     null,
@@ -215,7 +173,7 @@ export function grokPwaHeadTags(appName = DEFAULT_APP_NAME) {
     ["apple-touch-icon", '<link rel="apple-touch-icon" href="/__grok/icon-180.png">'],
     [
       "apple-mobile-web-app-title",
-      `<meta name="apple-mobile-web-app-title" content="${escapeHtml(appName)}">`,
+      '<meta name="apple-mobile-web-app-title" content="' + escapeHtml(appName) + '">',
     ],
     [
       "apple-mobile-web-app-status-bar-style",
@@ -247,22 +205,23 @@ export function grokXCreatorHeadTags(creator = readXCreator(), creatorId = readX
   const id = String(creatorId ?? "").trim();
   if (!name || !id) return [];
   return [
-    `<meta property="x:creator" content="${escapeHtml(name)}">`,
-    `<meta property="x:creator:id" content="${escapeHtml(id)}">`,
+    '<meta property="x:creator" content="' + escapeHtml(name) + '">',
+    '<meta property="x:creator:id" content="' + escapeHtml(id) + '">',
   ];
 }
 
-/** Platform "Created with Grok" banner — injected into every HTML document. */
 export function grokExtensionsHeadTags(projectId = readGrokProjectId()) {
   const id = escapeHtml(projectId);
   const tags = [];
   if (projectId) {
-    tags.push(`<meta name="grok-project-id" content="${id}">`);
+    tags.push('<meta name="grok-project-id" content="' + id + '">');
   }
   tags.push(
-    `<script src="${GROK_EXTENSIONS_SCRIPT_SRC}"${
-      projectId ? ` data-project-id="${id}"` : ""
-    } defer></script>`,
+    '<script src="' +
+      GROK_EXTENSIONS_SCRIPT_SRC +
+      '"' +
+      (projectId ? ' data-project-id="' + id + '"' : '') +
+      ' defer></script>',
   );
   return tags;
 }
@@ -277,7 +236,6 @@ export function readOgSite(cwd = process.cwd()) {
   }
 }
 
-/** Public path of an on-disk share card, or "" if neither file exists. */
 export function ogCardPublicPath(cwd = process.cwd()) {
   if (existsSync(join(cwd, "public/og.jpg"))) return "/og.jpg";
   if (existsSync(join(cwd, "public/og.png"))) return "/og.png";
@@ -289,7 +247,6 @@ function detectCustomOgCard(cwd = process.cwd(), site = {}) {
   return siteHasCustomCard(site) || Boolean(String(site.image ?? "").trim());
 }
 
-/** Snapshot for Vite/Nitro to bake into the server bundle (Vercel has no workspace FS). */
 export function snapshotOgIdentity(cwd = process.cwd()) {
   const site = { ...readOgSite(cwd) };
   const disk = ogCardPublicPath(cwd);
@@ -312,11 +269,11 @@ export function customOgAssetPath(cwd = process.cwd()) {
 
 export function ogServiceUrl() {
   const fromEnv = String(process.env?.VITE_OG_SERVICE_URL ?? "").trim();
-  return (fromEnv || OG_SERVICE_URL_DEFAULT).replace(/\\/+$/, "");
+  return (fromEnv || OG_SERVICE_URL_DEFAULT).replace(new RegExp("/+" + "$"), "");
 }
 
 export function titleFromDocument(html) {
-  const match = String(html ?? "").match(/<title\\b[^>]*>([^<]*)<\\/title>/i);
+  const match = String(html ?? "").match(new RegExp("<title[^>]*>([^<]*)</title>", "i"));
   return match ? unescapeHtml(match[1]).trim() : "";
 }
 
@@ -360,41 +317,48 @@ export function grokOgHeadTags({
   const title = resolveOgTitle(site, appName, host, documentTitle);
   const publicHost = resolvePublicHost(host);
   const tags = [
-    `<meta name="twitter:card" content="summary_large_image">`,
-    `<meta property="og:title" content="${escapeHtml(title)}">`,
+    '<meta name="twitter:card" content="summary_large_image">',
+    '<meta property="og:title" content="' + escapeHtml(title) + '">',
   ];
   const description = String(site.description ?? "").trim();
   if (description) {
-    tags.push(`<meta property="og:description" content="${escapeHtml(description)}">`);
+    tags.push('<meta property="og:description" content="' + escapeHtml(description) + '">');
   }
   if (String(site.type ?? "").toLowerCase() === "x:game") {
-    tags.push(`<meta property="og:type" content="x:game">`);
+    tags.push('<meta property="og:type" content="x:game">');
   }
   if (publicHost) {
     const asset = resolveOgCardAsset(site, cwd);
     const custom = Boolean(asset);
     let image = custom
-      ? `https://${publicHost}${asset.startsWith("/") ? asset : `/${asset}`}`
-      : `${ogServiceUrl()}/v1/card.png?host=${encodeURIComponent(publicHost)}&title=${encodeURIComponent(title)}`;
+      ? "https://" + publicHost + (asset.startsWith("/") ? asset : "/" + asset)
+      : ogServiceUrl() +
+        "/v1/card.png?host=" +
+        encodeURIComponent(publicHost) +
+        "&title=" +
+        encodeURIComponent(title);
     const color = !custom ? placeholderCardColor(site) : "";
-    if (color) image += `&color=${encodeURIComponent(color)}`;
-    tags.push(`<meta property="og:image" content="${escapeHtml(image)}">`);
-    tags.push(`<meta property="og:image:width" content="1200">`);
-    tags.push(`<meta property="og:image:height" content="630">`);
+    if (color) image += "&color=" + encodeURIComponent(color);
+    tags.push('<meta property="og:image" content="' + escapeHtml(image) + '">');
+    tags.push('<meta property="og:image:width" content="1200">');
+    tags.push('<meta property="og:image:height" content="630">');
     const banner = String(site.banner ?? "").trim();
     if (banner) {
-      const bannerUrl = `https://${publicHost}${banner.startsWith("/") ? banner : `/${banner}`}`;
-      tags.push(`<meta property="x:game:image" content="${escapeHtml(bannerUrl)}">`);
-      tags.push(`<meta property="x:game:image:width" content="1200">`);
-      tags.push(`<meta property="x:game:image:height" content="264">`);
+      const bannerUrl =
+        "https://" + publicHost + (banner.startsWith("/") ? banner : "/" + banner);
+      tags.push('<meta property="x:game:image" content="' + escapeHtml(bannerUrl) + '">');
+      tags.push('<meta property="x:game:image:width" content="1200">');
+      tags.push('<meta property="x:game:image:height" content="264">');
     }
   }
   return tags;
 }
 
 export function stripShareMetaTags(html) {
-  return String(html).replace(/<meta\\b[^>]*>/gi, (tag) => {
-    const attrs = [...tag.matchAll(/\\b(?:property|name)\\s*=\\s*["']([^"']+)["']/gi)];
+  return String(html).replace(new RegExp("<meta[^>]*>", "gi"), (tag) => {
+    const attrs = [
+      ...tag.matchAll(new RegExp("(?:property|name)\\s*=\\s*[\"']([^\"']+)[\"']", "gi")),
+    ];
     for (const match of attrs) {
       if (SHARE_META_KEYS.has(String(match[1]).toLowerCase())) return "";
     }
@@ -403,17 +367,19 @@ export function stripShareMetaTags(html) {
 }
 
 function insertAfterHeadOpen(html, snippet) {
-  if (/<head\\b[^>]*>/i.test(html)) {
-    return html.replace(/<head\\b[^>]*>/i, (open) => `${open}${snippet}`);
+  if (new RegExp("<head[^>]*>", "i").test(html)) {
+    return html.replace(new RegExp("<head[^>]*>", "i"), (open) => open + snippet);
   }
-  if (/<html\\b[^>]*>/i.test(html)) {
-    return html.replace(/<html\\b[^>]*>/i, (open) => `${open}<head>${snippet}</head>`);
+  if (new RegExp("<html[^>]*>", "i").test(html)) {
+    return html.replace(new RegExp("<html[^>]*>", "i"), (open) => open + "<head>" + snippet + "</head>");
   }
-  return `<!doctype html><html><head>${snippet}</head>${html}`;
+  return "<!doctype html><html><head>" + snippet + "</head>" + html;
 }
 
 function insertBeforeHeadClose(html, snippet) {
-  if (/<\\/head>/i.test(html)) return html.replace(/<\\/head>/i, `${snippet}</head>`);
+  if (new RegExp("</head>", "i").test(html)) {
+    return html.replace(new RegExp("</head>", "i"), snippet + "</head>");
+  }
   return insertAfterHeadOpen(html, snippet);
 }
 
@@ -452,7 +418,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
       if (key === "manifest") return !next.includes('href="/__grok/manifest.webmanifest"');
       if (key === "icon-svg") return !next.includes('href="/favicon.svg"');
       if (key === "apple-touch-icon") return !next.includes('href="/__grok/icon-180.png"');
-      return !next.includes(`name="${key}"`);
+      return !next.includes('name="' + key + '"');
     })
     .map(([, tag]) => tag);
 
@@ -464,14 +430,14 @@ export function injectGrokPwaHead(html, ctx = {}) {
   if (!next.includes("/grok-app-builder/extensions.js")) {
     missing.push(...grokExtensionsHeadTags(projectId));
   } else if (projectId && !next.includes('name="grok-project-id"')) {
-    missing.push(`<meta name="grok-project-id" content="${escapeHtml(projectId)}">`);
+    missing.push('<meta name="grok-project-id" content="' + escapeHtml(projectId) + '">');
   }
   if (
     projectId &&
     !next.includes('property="grok:app_id"') &&
     !next.includes("property='grok:app_id'")
   ) {
-    missing.push(`<meta property="grok:app_id" content="${escapeHtml(projectId)}">`);
+    missing.push('<meta property="grok:app_id" content="' + escapeHtml(projectId) + '">');
   }
   const creatorTags = grokXCreatorHeadTags(creator, creatorId);
   if (creatorTags.length > 0) {
@@ -487,14 +453,12 @@ export function injectGrokPwaHead(html, ctx = {}) {
 }
 
 function findHeadClose(buf) {
-  const at = buf.toString("latin1").search(/<\\/head>/i);
-  return at;
+  return buf.toString("latin1").search(new RegExp("</head>", "i"));
 }
 
 export function createHeadInjector(ctx = {}) {
   const normalized = normalizeHeadContext(ctx);
 
-  /** @type {Buffer[]} */
   let pending = [];
   let done = false;
 
@@ -510,7 +474,6 @@ export function createHeadInjector(ctx = {}) {
     });
 
   return {
-    /** @param {Uint8Array | string} chunk @returns {Buffer[]} chunks ready to emit */
     push(chunk) {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       if (done) return [buf];
@@ -520,11 +483,10 @@ export function createHeadInjector(ctx = {}) {
       if (at === -1) return [];
       done = true;
       pending = [];
-      const closeLen = joined.toString("latin1", at).match(/^<\\/head>/i)[0].length;
+      const closeLen = joined.toString("latin1", at).match(new RegExp("^</head>", "i"))[0].length;
       const head = apply(joined.subarray(0, at + closeLen).toString("utf8"));
       return [Buffer.concat([Buffer.from(head, "utf8"), joined.subarray(at + closeLen)])];
     },
-    /** @returns {Buffer[]} whatever is still buffered (no `</head>` seen) */
     flush() {
       if (done || pending.length === 0) return [];
       const rest = Buffer.concat(pending);
