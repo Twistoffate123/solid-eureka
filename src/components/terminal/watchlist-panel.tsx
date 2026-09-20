@@ -139,7 +139,7 @@ export function WatchlistPanel() {
                 className="grid size-9 place-items-center rounded-md text-subtle opacity-0 hover:bg-bg hover:text-down group-hover:opacity-100"
                 onClick={() => remove(sym)}
               >
-                <Star className="size-3.5 fill-current" />
+                <Trash2 className="size-3.5" />
               </button>
             </div>
           );
