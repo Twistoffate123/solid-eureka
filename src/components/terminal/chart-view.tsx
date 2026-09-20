@@ -502,8 +502,29 @@ export function ChartView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawings, theme, bars, drawingTool, engine]);
 
+  useEffect(() => {
+    const chartApi = chartRef.current;
+    if (!chartApi) return;
+    const drawing = drawingTool !== "cursor";
+    chartApi.applyOptions({
+      handleScroll: {
+        mouseWheel: !drawing,
+        pressedMouseMove: !drawing,
+        horzTouchDrag: !drawing,
+        vertTouchDrag: !drawing,
+      },
+      handleScale: {
+        mouseWheel: !drawing,
+        pinch: !drawing,
+        axisPressedMouseMove: !drawing,
+      },
+    });
+  }, [drawingTool, engine]);
+
   const onOverlayPointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (drawingTool === "cursor") return;
+    e.preventDefault();
+    e.stopPropagation();
     const chartApi = chartRef.current;
     const series = seriesRef.current;
     const canvas = overlayRef.current;
@@ -514,7 +535,7 @@ export function ChartView() {
     const time = chartApi.timeScale().coordinateToTime(x);
     const price = series.coordinateToPrice(y);
     if (time == null || price == null) return;
-    const t = time as number;
+    const t = typeof time === "number" ? time : (time as { timestamp?: number }).timestamp ?? Number(time);
 
     if (e.type === "pointermove") {
       hoverPtRef.current = { t, p: price };
@@ -522,6 +543,11 @@ export function ChartView() {
       return;
     }
     if (e.type !== "pointerdown") return;
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {
+      /* optional */
+    }
 
     if (drawingTool === "hline") {
       addDrawing({ id: uid("d"), tool: "hline", price });
@@ -530,6 +556,7 @@ export function ChartView() {
     }
     if (!pendingRef.current) {
       pendingRef.current = { tool: drawingTool, t1: t, p1: price };
+      drawOverlay();
       return;
     }
     const p = pendingRef.current;
@@ -542,18 +569,18 @@ export function ChartView() {
   const last = bars[bars.length - 1];
   const shown = hover ?? last;
   const up = shown ? shown.close >= shown.open : true;
+  // Header % is always the live session/day change from the quote so toggling
+  // 1m/1H/1D/1W does not invent a different %. Bar-to-bar period move is optional.
   const periodMove = useMemo(() => {
-    if ((timeframe !== "1W" && timeframe !== "1M") || bars.length < 2) return null;
+    if (bars.length < 2) return null;
     const cur = bars[bars.length - 1]!;
     const prev = bars[bars.length - 2]!;
     if (!prev.close) return null;
     return { change: cur.close - prev.close, pct: ((cur.close - prev.close) / prev.close) * 100 };
-  }, [bars, timeframe]);
-  const move = periodMove
-    ? periodMove
-    : quote
-      ? { change: quote.change, pct: quote.changePercent }
-      : null;
+  }, [bars]);
+  const move = quote
+    ? { change: quote.change, pct: quote.changePercent }
+    : periodMove;
   const liveUp = (move?.pct ?? 0) >= 0;
 
   return (
@@ -578,51 +605,32 @@ export function ChartView() {
                 {liveUp ? "+" : ""}
                 {formatPrice(move.change)} ({liveUp ? "+" : ""}
                 {move.pct.toFixed(2)}%)
-                {periodMove ? (
-                  <span className="ml-1 text-[0.6875rem] text-subtle">{timeframe}</span>
-                ) : null}
               </span>
             ) : null}
-            {quote?.currency ? <span className="text-xs text-subtle">{quote.currency}</span> : null}
+            {shown ? (
+              <span className="hidden text-xs text-subtle sm:inline">
+                O {formatPrice(shown.open)} · H {formatPrice(shown.high)} · L {formatPrice(shown.low)} · V{" "}
+                {formatVolume(shown.volume)}
+              </span>
+            ) : null}
           </div>
         </div>
-        {shown ? (
-          <div className="hidden gap-3 font-mono text-[0.6875rem] text-muted sm:flex">
-            <span>
-              O <span className="text-fg">{formatPrice(shown.open)}</span>
-            </span>
-            <span>
-              H <span className="text-up">{formatPrice(shown.high)}</span>
-            </span>
-            <span>
-              L <span className="text-down">{formatPrice(shown.low)}</span>
-            </span>
-            <span>
-              C <span className={up ? "text-up" : "text-down"}>{formatPrice(shown.close)}</span>
-            </span>
-            <span>
-              V <span className="text-fg">{formatVolume(shown.volume)}</span>
-            </span>
-          </div>
-        ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1">
-        <div className="flex items-center">
-          {TIMEFRAMES.map((tf) => (
-            <button
-              key={tf.id}
-              type="button"
-              onClick={() => setTimeframe(tf.id)}
-              className={cn(
-                "h-8 min-w-8 rounded-md px-2 font-mono text-xs",
-                timeframe === tf.id ? "bg-elevated text-fg" : "text-muted hover:text-fg",
-              )}
-            >
-              {tf.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1.5">
+        {TIMEFRAMES.map((tf) => (
+          <button
+            key={tf.id}
+            type="button"
+            onClick={() => setTimeframe(tf.id)}
+            className={cn(
+              "h-8 rounded-md px-2.5 text-xs font-medium",
+              timeframe === tf.id ? "bg-elevated text-fg" : "text-muted hover:text-fg",
+            )}
+          >
+            {tf.label}
+          </button>
+        ))}
         <span className="mx-1 h-4 w-px bg-border" />
         {(
           [
@@ -659,7 +667,14 @@ export function ChartView() {
               size="icon-sm"
               variant={drawingTool === id ? "secondary" : "ghost"}
               aria-label={label}
-              onClick={() => setDrawingTool(id)}
+              aria-pressed={drawingTool === id}
+              title={label}
+              onClick={(ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                setDrawingTool(id);
+                pendingRef.current = null;
+              }}
             >
               <Icon className="size-4" />
             </Button>
@@ -698,11 +713,12 @@ export function ChartView() {
         <canvas
           ref={overlayRef}
           className={cn(
-            "absolute inset-0",
+            "absolute inset-0 z-10 touch-none",
             drawingTool === "cursor" ? "pointer-events-none" : "cursor-crosshair",
           )}
           onPointerDown={onOverlayPointer}
           onPointerMove={onOverlayPointer}
+          onPointerUp={onOverlayPointer}
         />
         {chartLoading && !bars.length ? (
           <div className="absolute inset-0 grid place-items-center text-sm text-muted">Loading chart…</div>
