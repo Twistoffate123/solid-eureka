@@ -15,11 +15,11 @@ export type Outlook = {
   bias: Bias;
   score: number;
   conviction: number;
-  /** Short drivers explaining why conviction is high or low. */
   convictionReasons: string[];
   headline: string;
   summary: string;
   bullets: string[];
+  plays: string[];
   levels: { label: string; value: number }[];
   snapshot: { label: string; value: string; tone: "up" | "down" | "neutral" }[];
 };
@@ -52,11 +52,13 @@ export function buildOutlook(bars: Bar[], quote: Quote): Outlook {
       score: 0,
       conviction: 0.2,
       convictionReasons: [
-        "Fewer than 30 bars available — conviction stays low until more history loads.",
+        "Fewer than 30 bars — trend and momentum scores are unreliable.",
+        "Switch to 1D or 1W for a structural read before trusting conviction.",
       ],
       headline: "Not enough history for a full read",
       summary: `${quote.shortName || quote.symbol} needs more bars before trend, momentum and volatility can be scored with confidence.`,
       bullets: ["Load a longer timeframe (1D or 1W) for a structural view."],
+      plays: ["Wait for more history before sizing a short-term trade."],
       levels: [],
       snapshot: [],
     };
@@ -297,6 +299,48 @@ export function buildOutlook(bars: Bar[], quote: Quote): Outlook {
     convictionReasons.push("Mixed indicators keep bias neutral; treat levels, not direction, as primary.");
   }
 
+  const plays: string[] = [];
+  const stopPad = atr != null ? atr * 0.8 : price * 0.012;
+  if (bias === "strong-bullish" || bias === "bullish") {
+    plays.push(
+      `Long bias: buy dips toward ${fmt(s1)} (S1); invalidation under ${fmt(s1 - stopPad)}. First target ${fmt(r1)} (R1), stretch ${fmt(swingHigh)}.`,
+    );
+    if (rsi != null && rsi >= 70) {
+      plays.push(
+        `RSI stretched (${fmt(rsi, 1)}): prefer waiting for a pullback to EMA21 (${e21 != null ? fmt(e21) : "n/a"}) instead of chasing.`,
+      );
+    } else if (s20 != null && price > s20) {
+      plays.push(
+        `Momentum long: hold while price stays above SMA20 (${fmt(s20)}); trail a stop under the rising average.`,
+      );
+    }
+  } else if (bias === "strong-bearish" || bias === "bearish") {
+    plays.push(
+      `Short bias: sell rips toward ${fmt(r1)} (R1); invalidation above ${fmt(r1 + stopPad)}. First target ${fmt(s1)} (S1), stretch ${fmt(swingLow)}.`,
+    );
+    if (rsi != null && rsi <= 30) {
+      plays.push(
+        `RSI washed out (${fmt(rsi, 1)}): avoid aggressive shorts; look for a bounce into resistance to re-short.`,
+      );
+    } else if (s20 != null && price < s20) {
+      plays.push(
+        `Momentum short: pressure remains while under SMA20 (${fmt(s20)}); cover on reclaim of the average.`,
+      );
+    }
+  } else {
+    plays.push(
+      `Range play: fade extremes between S1 ${fmt(s1)} and R1 ${fmt(r1)}; stand aside if price closes outside with rising volume.`,
+    );
+    plays.push(
+      `Breakout watch: a daily close above ${fmt(swingHigh)} or below ${fmt(swingLow)} opens a short-term directional leg.`,
+    );
+  }
+  if (atr != null) {
+    plays.push(
+      `Size with ATR ${fmt(atr)} (~${fmt((atr / price) * 100, 2)}% of price); keep risk per idea tight on short-term trades.`,
+    );
+  }
+
   return {
     bias,
     score: norm,
@@ -305,6 +349,7 @@ export function buildOutlook(bars: Bar[], quote: Quote): Outlook {
     headline,
     summary,
     bullets: bullets.slice(0, 7),
+    plays: plays.slice(0, 4),
     levels: [
       { label: "Swing high", value: swingHigh },
       { label: "R1", value: r1 },
