@@ -72,7 +72,9 @@ export type TimeframeId =
   | "4h"
   | "1D"
   | "1W"
-  | "1M";
+  | "1M"
+  | "3M"
+  | "6M";
 
 export type Timeframe = {
   id: TimeframeId;
@@ -92,7 +94,17 @@ export const TIMEFRAMES: Timeframe[] = [
   { id: "1D", label: "1D", interval: "1d", range: "1y", seconds: 86400 },
   { id: "1W", label: "1W", interval: "1wk", range: "5y", seconds: 604800 },
   { id: "1M", label: "1M", interval: "1mo", range: "10y", seconds: 2592000 },
+  { id: "3M", label: "3M", interval: "1d", range: "3mo", seconds: 86400 },
+  { id: "6M", label: "6M", interval: "1d", range: "6mo", seconds: 86400 },
 ];
+
+/** Calendar-ish window (seconds) for period % on duration timeframes */
+export const PERIOD_WINDOWS: Partial<Record<TimeframeId, number>> = {
+  "1W": 7 * 86400,
+  "1M": 30 * 86400,
+  "3M": 90 * 86400,
+  "6M": 180 * 86400,
+};
 
 export function timeframeById(id: TimeframeId): Timeframe {
   return TIMEFRAMES.find((t) => t.id === id) ?? TIMEFRAMES[5]!;
