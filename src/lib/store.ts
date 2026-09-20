@@ -80,20 +80,8 @@ const defaults: PersistSlice = {
   watchlists: DEFAULT_WATCHLISTS,
   activeWatchlistId: "core",
   indicators: [
-    {
-      id: "sma20",
-      type: "sma",
-      params: { length: 20 },
-      visible: true,
-      color: INDICATOR_PALETTE[0],
-    },
-    {
-      id: "sma50",
-      type: "sma",
-      params: { length: 50 },
-      visible: true,
-      color: INDICATOR_PALETTE[1],
-    },
+    { id: "sma20", type: "sma", params: { length: 20 }, visible: true, color: INDICATOR_PALETTE[0] },
+    { id: "sma50", type: "sma", params: { length: 50 }, visible: true, color: INDICATOR_PALETTE[1] },
   ],
   drawings: [],
   alerts: [],
@@ -189,9 +177,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     const { watchlists, activeWatchlistId } = get();
     set({
       watchlists: watchlists.map((w) =>
-        w.id === activeWatchlistId
-          ? { ...w, symbols: w.symbols.filter((s) => s !== symbol) }
-          : w,
+        w.id === activeWatchlistId ? { ...w, symbols: w.symbols.filter((s) => s !== symbol) } : w,
       ),
     });
     persist(pick(get()));
@@ -202,9 +188,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     persist(pick(get()));
   },
   renameWatchlist: (id, name) => {
-    set({
-      watchlists: get().watchlists.map((w) => (w.id === id ? { ...w, name } : w)),
-    });
+    set({ watchlists: get().watchlists.map((w) => (w.id === id ? { ...w, name } : w)) });
     persist(pick(get()));
   },
   deleteWatchlist: (id) => {
@@ -212,17 +196,12 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     const lists = remaining.length
       ? remaining
       : [{ id: uid("wl"), name: "My list", symbols: [] as string[] }];
-    set({
-      watchlists: lists,
-      activeWatchlistId: lists[0]!.id,
-    });
+    set({ watchlists: lists, activeWatchlistId: lists[0]!.id });
     persist(pick(get()));
   },
   clearWatchlist: (id) => {
     set({
-      watchlists: get().watchlists.map((w) =>
-        w.id === id ? { ...w, symbols: [] } : w,
-      ),
+      watchlists: get().watchlists.map((w) => (w.id === id ? { ...w, symbols: [] } : w)),
     });
     persist(pick(get()));
   },
@@ -251,7 +230,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     persist(pick(get()));
   },
   addDrawing: (d) => {
-    set({ drawings: [...get().drawings, d], drawingTool: "cursor" });
+    set({ drawings: [...get().drawings, d] });
     persist(pick(get()));
   },
   clearDrawings: () => {
@@ -264,10 +243,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   },
   addAlert: (alert) => {
     set({
-      alerts: [
-        ...get().alerts,
-        { ...alert, id: uid("al"), createdAt: Date.now() },
-      ],
+      alerts: [...get().alerts, { ...alert, id: uid("al"), createdAt: Date.now() }],
     });
     persist(pick(get()));
   },
@@ -277,9 +253,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   },
   markAlertTriggered: (id) => {
     set({
-      alerts: get().alerts.map((a) =>
-        a.id === id ? { ...a, triggeredAt: Date.now() } : a,
-      ),
+      alerts: get().alerts.map((a) => (a.id === id ? { ...a, triggeredAt: Date.now() } : a)),
     });
     persist(pick(get()));
   },
