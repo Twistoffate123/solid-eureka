@@ -139,6 +139,23 @@ function OutlookPanel() {
           </li>
         ))}
       </ul>
+      {outlook.plays?.length ? (
+        <div>
+          <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-subtle">
+            Short-term plays
+          </p>
+          <ul className="space-y-2 rounded-lg border border-border bg-elevated/50 px-3 py-2">
+            {outlook.plays.map((play) => (
+              <li key={play} className="text-sm leading-relaxed text-fg">
+                • {play}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[0.6875rem] text-subtle">
+            Illustrative only — not investment advice.
+          </p>
+        </div>
+      ) : null}
       <div>
         <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-subtle">
           Levels
@@ -501,10 +518,10 @@ function AlertsPanel() {
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           placeholder={q ? formatPrice(q.price) : "Price"}
-          className="flex-1"
+          className="h-10 flex-1"
         />
         <Button
-          size="default"
+          size="sm"
           onClick={() => {
             const n = Number(price);
             if (!Number.isFinite(n) || n <= 0) return;
@@ -512,32 +529,26 @@ function AlertsPanel() {
             setPrice("");
           }}
         >
-          <Bell className="size-4" />
+          <Bell className="size-3.5" />
           Add
         </Button>
       </div>
       <ul className="space-y-2">
-        {alerts.length === 0 ? <li className="text-sm text-muted">No alerts yet.</li> : null}
         {alerts.map((a) => (
           <li
             key={a.id}
-            className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+            className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
           >
-            <div>
-              <p className="font-mono text-sm text-fg">
-                {a.symbol} {a.operator} {formatPrice(a.price)}
-              </p>
-              <p className="text-xs text-subtle">
-                {a.triggeredAt ? `Triggered ${formatTime(a.triggeredAt / 1000)}` : "Waiting"}
-              </p>
-            </div>
+            <span className="font-mono text-fg">
+              {a.symbol} {a.operator} {formatPrice(a.price)}
+            </span>
             <button
               type="button"
               aria-label="Remove alert"
-              className="grid size-9 place-items-center rounded-md text-muted hover:text-down"
+              className="grid size-8 place-items-center rounded-md text-muted hover:text-down"
               onClick={() => removeAlert(a.id)}
             >
-              <Trash2 className="size-4" />
+              <Trash2 className="size-3.5" />
             </button>
           </li>
         ))}
