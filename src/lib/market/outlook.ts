@@ -15,6 +15,8 @@ export type Outlook = {
   bias: Bias;
   score: number;
   conviction: number;
+  /** Short drivers explaining why conviction is high or low. */
+  convictionReasons: string[];
   headline: string;
   summary: string;
   bullets: string[];
@@ -49,6 +51,9 @@ export function buildOutlook(bars: Bar[], quote: Quote): Outlook {
       bias: "neutral",
       score: 0,
       conviction: 0.2,
+      convictionReasons: [
+        "Fewer than 30 bars available — conviction stays low until more history loads.",
+      ],
       headline: "Not enough history for a full read",
       summary: `${quote.shortName || quote.symbol} needs more bars before trend, momentum and volatility can be scored with confidence.`,
       bullets: ["Load a longer timeframe (1D or 1W) for a structural view."],
@@ -251,10 +256,52 @@ export function buildOutlook(bars: Bar[], quote: Quote): Outlook {
     );
   }
 
+  const conviction = Math.min(
+    1,
+    0.35 + Math.abs(norm) * 0.65 + (adx != null && adx > 25 ? 0.1 : 0),
+  );
+  const convictionReasons: string[] = [];
+  const confPct = Math.round(conviction * 100);
+  convictionReasons.push(
+    `Score ${fmt(norm * 100, 0)}/100 on trend+momentum+volume drives ${confPct}% conviction.`,
+  );
+  if (adx != null) {
+    convictionReasons.push(
+      adx >= 25
+        ? `ADX ${fmt(adx, 1)} ≥ 25: trend is established, so the bias is more reliable.`
+        : `ADX ${fmt(adx, 1)} < 25: no strong trend — conviction is capped (range risk).`,
+    );
+  }
+  if (rsi != null) {
+    convictionReasons.push(
+      rsi >= 70
+        ? `RSI ${fmt(rsi, 1)} is overbought — high conviction can still mean mean-reversion risk.`
+        : rsi <= 30
+          ? `RSI ${fmt(rsi, 1)} is oversold — rebound setups raise confidence in a bounce bias.`
+          : `RSI ${fmt(rsi, 1)} is mid-range — momentum is informative but not extreme.`,
+    );
+  }
+  if (macdHist != null) {
+    convictionReasons.push(
+      macdHist > 0
+        ? "MACD histogram positive: momentum agrees with a constructive bias."
+        : "MACD histogram negative: momentum agrees with a defensive bias.",
+    );
+  }
+  if (avgVol && lastVol > avgVol * 1.4) {
+    convictionReasons.push("Volume spike vs 20-period average confirms participation in the move.");
+  } else if (avgVol) {
+    convictionReasons.push("Volume is near average — signal quality is ordinary, not amplified.");
+  }
+  if (Math.abs(norm) < 0.18) {
+    convictionReasons.push("Mixed indicators keep bias neutral; treat levels, not direction, as primary.");
+  }
+
   return {
     bias,
     score: norm,
-    conviction: Math.min(1, 0.35 + Math.abs(norm) * 0.65 + (adx && adx > 25 ? 0.1 : 0)),
+    conviction,
+    convictionReasons: convictionReasons.slice(0, 5),
     headline,
     summary,
     bullets: bullets.slice(0, 7),
