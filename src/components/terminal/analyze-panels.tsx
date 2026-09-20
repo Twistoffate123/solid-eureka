@@ -97,11 +97,25 @@ function OutlookPanel() {
           <Badge variant={tone === "up" ? "up" : tone === "down" ? "down" : "default"}>
             {outlook.headline.split("·")[0]?.trim()}
           </Badge>
-          <span className="tabular text-xs text-muted">
+          <span className="tabular text-xs font-medium text-fg">
             Conviction {Math.round(outlook.conviction * 100)}%
           </span>
         </div>
         <p className="mt-3 text-sm leading-relaxed text-fg">{outlook.summary}</p>
+        {outlook.convictionReasons?.length ? (
+          <div className="mt-3 rounded-lg border border-border bg-elevated/60 px-3 py-2">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-subtle">
+              Why {Math.round(outlook.conviction * 100)}% conviction
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {outlook.convictionReasons.map((r) => (
+                <li key={r} className="text-xs leading-relaxed text-muted">
+                  • {r}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
       <div className="grid grid-cols-2 gap-2">
         {outlook.snapshot.map((s) => (
@@ -514,7 +528,7 @@ function AlertsPanel() {
                 {a.symbol} {a.operator} {formatPrice(a.price)}
               </p>
               <p className="text-xs text-subtle">
-                {a.triggeredAt ? `Triggered ${formatTime(a.triggeredAt / 1000)}` : "Armed"}
+                {a.triggeredAt ? `Triggered ${formatTime(a.triggeredAt / 1000)}` : "Waiting"}
               </p>
             </div>
             <button
