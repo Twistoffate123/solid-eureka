@@ -30,21 +30,21 @@ const SHARE_META_KEYS = new Set([
 
 export function escapeHtml(value) {
   return String(value)
-    .replaceAll("&", "&")
-    .replaceAll("<", "<")
-    .replaceAll(">", ">")
-    .replaceAll('"', """)
+    .replaceAll("&", "&" + "amp;")
+    .replaceAll("<", "&" + "lt;")
+    .replaceAll(">", "&" + "gt;")
+    .replaceAll('"', "&" + "quot;")
     .replaceAll("'", "&#39;");
 }
 
-/** Inverse of escapeHtml. Decode & last so a single pass undoes one encode. */
+/** Inverse of escapeHtml. Decode amp entities last so a single pass undoes one encode. */
 function unescapeHtml(value) {
   return String(value)
-    .replaceAll("<", "<")
-    .replaceAll(">", ">")
-    .replaceAll(""", '"')
+    .replaceAll("&" + "lt;", "<")
+    .replaceAll("&" + "gt;", ">")
+    .replaceAll("&" + "quot;", '"')
     .replaceAll("&#39;", "'")
-    .replaceAll("&", "&");
+    .replaceAll("&" + "amp;", "&");
 }
 
 /** 6-digit hex for the og.grok.me placeholder, or "" if site.color is missing/invalid. */
@@ -100,7 +100,7 @@ export function publicAppHost(hostHeader) {
     .split(":")[0]
     .toLowerCase();
   if (!host || !/^[a-z0-9.-]+$/.test(host) || !host.includes(".")) return "";
-  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "";
+  if (/^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(host)) return "";
   if (isVercelSystemHost(host)) return "";
   return host;
 }
@@ -133,7 +133,7 @@ export function isDocumentPath(pathname) {
     !path.startsWith("/api/") &&
     !path.startsWith("/@") &&
     !path.startsWith("/node_modules") &&
-    !/\.[a-z0-9]+$/i.test(path)
+    !/\\.[a-z0-9]+$/i.test(path)
   );
 }
 
@@ -312,11 +312,11 @@ export function customOgAssetPath(cwd = process.cwd()) {
 
 export function ogServiceUrl() {
   const fromEnv = String(process.env?.VITE_OG_SERVICE_URL ?? "").trim();
-  return (fromEnv || OG_SERVICE_URL_DEFAULT).replace(/\/+$/, "");
+  return (fromEnv || OG_SERVICE_URL_DEFAULT).replace(/\\/+$/, "");
 }
 
 export function titleFromDocument(html) {
-  const match = String(html ?? "").match(/<title\b[^>]*>([^<]*)<\/title>/i);
+  const match = String(html ?? "").match(/<title\\b[^>]*>([^<]*)<\\/title>/i);
   return match ? unescapeHtml(match[1]).trim() : "";
 }
 
@@ -393,8 +393,8 @@ export function grokOgHeadTags({
 }
 
 export function stripShareMetaTags(html) {
-  return String(html).replace(/<meta\b[^>]*>/gi, (tag) => {
-    const attrs = [...tag.matchAll(/\b(?:property|name)\s*=\s*["']([^"']+)["']/gi)];
+  return String(html).replace(/<meta\\b[^>]*>/gi, (tag) => {
+    const attrs = [...tag.matchAll(/\\b(?:property|name)\\s*=\\s*["']([^"']+)["']/gi)];
     for (const match of attrs) {
       if (SHARE_META_KEYS.has(String(match[1]).toLowerCase())) return "";
     }
@@ -403,17 +403,17 @@ export function stripShareMetaTags(html) {
 }
 
 function insertAfterHeadOpen(html, snippet) {
-  if (/<head\b[^>]*>/i.test(html)) {
-    return html.replace(/<head\b[^>]*>/i, (open) => `${open}${snippet}`);
+  if (/<head\\b[^>]*>/i.test(html)) {
+    return html.replace(/<head\\b[^>]*>/i, (open) => `${open}${snippet}`);
   }
-  if (/<html\b[^>]*>/i.test(html)) {
-    return html.replace(/<html\b[^>]*>/i, (open) => `${open}<head>${snippet}</head>`);
+  if (/<html\\b[^>]*>/i.test(html)) {
+    return html.replace(/<html\\b[^>]*>/i, (open) => `${open}<head>${snippet}</head>`);
   }
   return `<!doctype html><html><head>${snippet}</head>${html}`;
 }
 
 function insertBeforeHeadClose(html, snippet) {
-  if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, `${snippet}</head>`);
+  if (/<\\/head>/i.test(html)) return html.replace(/<\\/head>/i, `${snippet}</head>`);
   return insertAfterHeadOpen(html, snippet);
 }
 
@@ -487,7 +487,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
 }
 
 function findHeadClose(buf) {
-  const at = buf.toString("latin1").search(/<\/head>/i);
+  const at = buf.toString("latin1").search(/<\\/head>/i);
   return at;
 }
 
@@ -520,7 +520,7 @@ export function createHeadInjector(ctx = {}) {
       if (at === -1) return [];
       done = true;
       pending = [];
-      const closeLen = joined.toString("latin1", at).match(/^<\/head>/i)[0].length;
+      const closeLen = joined.toString("latin1", at).match(/^<\\/head>/i)[0].length;
       const head = apply(joined.subarray(0, at + closeLen).toString("utf8"));
       return [Buffer.concat([Buffer.from(head, "utf8"), joined.subarray(at + closeLen)])];
     },
