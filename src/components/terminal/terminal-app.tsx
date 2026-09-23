@@ -181,7 +181,7 @@ export function TerminalApp() {
         compareCharts,
       }}
     >
-      <div className="flex h-dvh flex-col bg-bg text-fg">
+      <div className="terminal-shell flex h-[100svh] flex-col bg-bg pt-[env(safe-area-inset-top)] text-fg">
         <HeaderBar />
         <SymbolSearch />
         <div className="hidden min-h-0 flex-1 md:flex">
