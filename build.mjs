@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const root = dirname(fileURLToPath(import.meta.url));
 process.env.VITE_AUTH_ENABLED ??= "false";
 
+await import("./scripts/write-brand-icons.mjs");
+
 try {
   const envFile = join(root, ".grok", "app-env.json");
   if (existsSync(envFile)) {
