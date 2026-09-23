@@ -81,6 +81,7 @@
 }
 
 html.light {
+  background: #ffffff;
   --bg: #f3f4f6;
   --surface: #ffffff;
   --elevated: #eef0f3;
@@ -104,7 +105,7 @@ html.light {
     height: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #000;
+    background: #101318;
     color: var(--fg);
   }
 
@@ -147,6 +148,11 @@ html.light {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.chart-stage,
+.chart-stage canvas {
+  touch-action: none;
 }
 
 .chart-stage {
