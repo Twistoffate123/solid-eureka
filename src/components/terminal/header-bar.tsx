@@ -1,4 +1,4 @@
-import { Download, Moon, Search, Sun } from "lucide-react";
+import { Moon, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InstallButton } from "@/components/terminal/install-button";
 import { useTerminalStore } from "@/lib/store";
@@ -28,14 +28,6 @@ export function HeaderBar() {
           /
         </kbd>
       </button>
-      <a
-        href="/meridian-app.zip"
-        download="meridian-app.zip"
-        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-fg hover:opacity-90"
-      >
-        <Download className="size-4" />
-        <span className="hidden sm:inline">Download zip</span>
-      </a>
       <InstallButton />
       <Button
         size="icon-sm"
