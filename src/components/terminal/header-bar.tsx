@@ -12,7 +12,7 @@ export function HeaderBar() {
     <header className="sticky top-0 z-40 shrink-0 border-b border-border bg-surface pt-[env(safe-area-inset-top)]">
       <div className="flex h-12 items-center gap-2 px-3 sm:gap-3">
         <div className="flex items-center gap-2">
-          <img src="/favicon.svg" alt="" className="size-7 rounded-md" />
+          <img src="/icon-192.png" alt="" className="size-7 rounded-md" />
           <div className="leading-tight">
             <p className="text-sm font-medium tracking-tight text-fg">Meridian</p>
             <p className="hidden text-[0.6875rem] text-subtle sm:block">Global market terminal</p>
