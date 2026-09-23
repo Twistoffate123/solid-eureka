@@ -77,8 +77,6 @@ function emptyQuote(symbol: string): Quote {
 
 function quoteFromMeta(meta: Record<string, unknown>, spark: number[] = []): Quote {
   const price = Number(meta.regularMarketPrice ?? 0);
-  // Never use chartPreviousClose — that is the first bar of the requested range
-  // (years ago on 1W/1M), not yesterday's close.
   const prevRaw = meta.previousClose ?? meta.regularMarketPreviousClose;
   const prev =
     prevRaw != null && Number.isFinite(Number(prevRaw)) && Number(prevRaw) !== 0
@@ -137,7 +135,6 @@ function mergeInProgressBar(bars: Bar[], seconds: number): Bar[] {
   if (bars.length < 2 || seconds < 86_400) return bars;
   const prev = bars[bars.length - 2]!;
   const last = bars[bars.length - 1]!;
-  // Yahoo appends a "now" stub inside the current week/month bucket.
   if (last.time - prev.time >= seconds * 0.85) return bars;
   return [
     ...bars.slice(0, -2),
@@ -193,19 +190,23 @@ function parseChart(
   }
   const ts = result.timestamp ?? [];
   const q = result.indicators?.quote?.[0] ?? {};
+  const metaPrice = Number(result.meta?.regularMarketPrice);
   const bars: Bar[] = [];
   for (let i = 0; i < ts.length; i++) {
     const open = q.open?.[i];
     const high = q.high?.[i];
     const low = q.low?.[i];
-    const close = q.close?.[i];
+    let close = q.close?.[i];
+    if ((close == null || !Number.isFinite(close)) && i === ts.length - 1 && Number.isFinite(metaPrice) && metaPrice > 0) {
+      close = metaPrice;
+    }
     if (open == null || high == null || low == null || close == null) continue;
     if (![open, high, low, close].every(Number.isFinite)) continue;
     bars.push({
       time: ts[i]!,
       open,
-      high,
-      low,
+      high: Math.max(high, close),
+      low: Math.min(low, close),
       close,
       volume: q.volume?.[i] ?? 0,
     });
